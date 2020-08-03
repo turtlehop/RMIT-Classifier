@@ -11,7 +11,7 @@
 
 
 #Test Line
-#     python train.py 'flowers/train' --arch=vgg16 --learning_rate=0.01 --hidden_units=4096 --epochs=3 --gpu
+#     python train.py 'flowers/train' --arch=vgg16 --learning_rate=0.001 --hidden_units=4096 --epochs=5 --gpu
 
 import numpy as np
 import torch
@@ -204,12 +204,12 @@ def main():
     parser.add_argument('--gpu', action='store_true', help='Run on GPU')
     args = parser.parse_args()
 
-    print(args.data_dir)
-    print(args.arch)
-    print(args.learning_rate)
-    print(args.hidden_units)   
-    print(args.epochs)
-    print(args.gpu)       
+#     print(args.data_dir)
+#     print(args.arch)
+#     print(args.learning_rate)
+#     print(args.hidden_units)   
+#     print(args.epochs)
+#     print(args.gpu)       
     
     if args.gpu:
         train(args.data_dir, args.arch, args.learning_rate, args.hidden_units, args.epochs, 'cuda')

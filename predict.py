@@ -116,6 +116,7 @@ def imshow(image, ax=None, title=None):
 def predict(image_path, model, topk, device):
     ''' Predict the class (or classes) of an image using a trained deep learning model.
     '''   
+    global trainloader
     
     image = process_image(image_path)
     image = image.to(device)
@@ -131,6 +132,10 @@ def predict(image_path, model, topk, device):
     top_k_indices = np.array(top_k_indices.detach())[0]
   
     #Converting index to class
+    model.class_to_idx = trainloader.dataset.class_to_idx
+    idx_to_class = { v : k for k,v in model.class_to_idx.items()}
+    topk_class = [idx_to_class[x] for x in top_k_indices]           
+    
     key_list = list(model.class_to_idx.keys())
     val_list = list(model.class_to_idx.values())
     
@@ -148,14 +153,23 @@ def prediction(image_path, checkpoint, top_k=5, category_names='cat_to_name.json
     model = load_checkpoint(checkpoint)
     flower_ps, flower_index = predict(image_path, model, top_k, device)
     
-    print(flower_ps)
+#     print(flower_ps)
+#     print(flower_index)
+    
+#     print(flower_ps)
+    key_list = list(model.class_to_idx.keys())
+    val_list = list(model.class_to_idx.values())
+    class_list = []
+    for i in flower_index:        
+#         print(key_list[val_list.index(i)])
+        class_list.append(key_list[val_list.index(i)])
     
     x = []
-    for number in flower_index:
+    for number in class_list:
     #     print("index {} class {}".format(number, cat_to_name[str(number)]))
         name = cat_to_name[str(number)]
         x.append(name)    
-    print(x)
+#     print(x)
     
     
     maxPS = np.amax(flower_ps)
