@@ -164,20 +164,22 @@ def prediction(image_path, checkpoint, top_k=5, category_names='cat_to_name.json
 #         print(key_list[val_list.index(i)])
         class_list.append(key_list[val_list.index(i)])
     
-    x = []
+    final_top_k_list = []
     for number in class_list:
     #     print("index {} class {}".format(number, cat_to_name[str(number)]))
         name = cat_to_name[str(number)]
-        x.append(name)    
-#     print(x)
+        final_top_k_list.append(name)    
+    
+    print("Top k classes: {}".format(final_top_k_list))
+    print("Top k probabilities: {}".format(flower_ps))
     
     
-    maxPS = np.amax(flower_ps)
-    max_index = np.where(flower_ps == np.amax(maxPS))
-#     print(type(max_index))
-#     print(max_index[0][0])
+#     maxPS = np.amax(flower_ps)
+#     max_index = np.where(flower_ps == np.amax(maxPS))
+# #     print(type(max_index))
+# #     print(max_index[0][0])
         
-    print("Flower prediction: {}".format(x[max_index[0][0]]))
+#     print("Flower prediction: {}".format(x[max_index[0][0]]))
     
 def main():
     
