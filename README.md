@@ -1,2 +1,2 @@
 # RMIT-Classifier
-RMIT Image Classifier - Part 1 
+RMIT Image Classifier
