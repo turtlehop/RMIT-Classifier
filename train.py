@@ -27,6 +27,7 @@ import re
 
 import argparse
 import sys
+from collections import OrderedDict
 
 
 def validation(model, testloader, criterion, device):
@@ -50,80 +51,113 @@ def validation(model, testloader, criterion, device):
 
 def train(data_dir, arch="vgg16", lr=0.01, hidden_units=512, epochs=3, device='cpu'):
     
-    if re.search('train', data_dir):
-        train_transforms = transforms.Compose([transforms.RandomRotation(30),
+    train_transforms = transforms.Compose([transforms.RandomRotation(30),
                                            transforms.RandomResizedCrop(224),
                                            transforms.RandomHorizontalFlip(),
                                            transforms.ToTensor(),
                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-        train_data = datasets.ImageFolder(data_dir, transform=train_transforms)
-        trainloader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
-        
-#     elif re.search('test', data_dir):
-        
-        test_transforms = transforms.Compose([transforms.Resize(256),
-                                              transforms.CenterCrop(224),
-                                              transforms.ToTensor(),
-                                              transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-        test_data = datasets.ImageFolder(data_dir, transform=test_transforms)
-        testloader = torch.utils.data.DataLoader(test_data, batch_size=32)
-        
-#     elif re.search('valid', data_dir):
-        valid_transforms = transforms.Compose([transforms.Resize(256),
-                                               transforms.CenterCrop(224),
-                                               transforms.ToTensor(),
-                                               transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-        valid_data = datasets.ImageFolder(data_dir, transform=valid_transforms)
-        validloader = torch.utils.data.DataLoader(valid_data, batch_size=32)
+    train_data = datasets.ImageFolder(data_dir, transform=train_transforms)
+    trainloader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
+
+    test_transforms = transforms.Compose([transforms.Resize(256),
+                                          transforms.CenterCrop(224),
+                                          transforms.ToTensor(),
+                                          transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    test_data = datasets.ImageFolder(data_dir, transform=test_transforms)
+    testloader = torch.utils.data.DataLoader(test_data, batch_size=32)
+
+
+    valid_transforms = transforms.Compose([transforms.Resize(256),
+                                           transforms.CenterCrop(224),
+                                           transforms.ToTensor(),
+                                           transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    valid_data = datasets.ImageFolder(data_dir, transform=valid_transforms)
+    validloader = torch.utils.data.DataLoader(valid_data, batch_size=32)
 
     with open('cat_to_name.json', 'r') as f:
-        cat_to_name = json.load(f)
-
+        cat_to_name = json.load(f)        
+        
     if re.search('vgg16', arch):        
         model = models.vgg16(pretrained=True)   
+        classifier = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(25088, hidden_units)),
+            ('relu1', nn.ReLU()),
+            ('dropout1', nn.Dropout(0.2)),
+            #                               ('fc2', nn.Linear(4096, 1000)),
+            #                               ('relu2', nn.ReLU()),
+            #                               ('dropout2', nn.Dropout(0.2)),
+            ('fc2', nn.Linear(hidden_units, 102)),    
+            ('output', nn.LogSoftmax(dim=1))
+        ]))
+        model.classifier = classifier           
+
+        #define Criterion and Optimizer Functions
+        criterion = nn.NLLLoss()
+        optimizer = optim.Adam(model.classifier.parameters(), lr)          
+        
     elif re.search('resnet18', arch):   
-        model = models.resnet18(pretrained=True)           
+        model = models.resnet18(pretrained=True) 
+        classifier = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(512, hidden_units)),
+            ('relu1', nn.ReLU()),
+            ('dropout1', nn.Dropout(0.2)),
+            ('logits', nn.Linear(hidden_units, 102))
+        ]))        
+        model.classifier = classifier           
+
+        #define Criterion and Optimizer Functions
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(model.classifier.parameters(), lr)   
+        
     elif re.search('alexnet', arch):   
-        model = models.alexnet(pretrained=True)          
-    elif re.search('squeezenet', arch):   
-        model = models.squeezenet1_0(pretrained=True)  
+        model = models.alexnet(pretrained=True)     
+        classifier = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(9216, hidden_units)),
+            ('relu1', nn.ReLU()),
+            ('dropout1', nn.Dropout(0.2)),
+            ('fc2', nn.Linear(hidden_units, 102)),    
+            ('output', nn.LogSoftmax(dim=1))
+        ]))         
+        model.classifier = classifier           
+
+        #define Criterion and Optimizer Functions
+        criterion = nn.NLLLoss()
+        optimizer = optim.Adam(model.classifier.parameters(), lr)           
+
     elif re.search('densenet', arch):   
         model = models.densenet161(pretrained=True)  
-    elif re.search('inception', arch):   
-        model = models.inception_v3(pretrained=True)          
-    elif re.search('googlenet', arch):   
-        model = models.googlenet(pretrained=True)             
-    elif re.search('shufflenet', arch):   
-        model = models.shufflenet_v2_x1_0(pretrained=True)          
-    elif re.search('mobilenet', arch):   
-        model = models.mobilenet_v2(pretrained=True)          
-    elif re.search('resnext50_32x4d', arch):   
-        model = models.resnext50_32x4d(pretrained=True)  
-    elif re.search('wide_resnet50_2', arch):   
-        model = models.wide_resnet50_2(pretrained=True)   
-    elif re.search('mnasnet', arch):   
-        model = models.mnasnet1_0(pretrained=True)          
+        classifier = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(2208, hidden_units)),
+            ('relu1', nn.ReLU()),
+            ('dropout1', nn.Dropout(0.2)),
+            ('logits', nn.Linear(hidden_units, 102))
+        ]))         
+        model.classifier = classifier           
 
-    for param in model.parameters():
-        param.requires_grad = False        
+        #define Criterion and Optimizer Functions
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(model.classifier.parameters(), lr)    
         
-    from collections import OrderedDict
-    classifier = nn.Sequential(OrderedDict([
-                              ('fc1', nn.Linear(25088, 4096)),
-                              ('relu1', nn.ReLU()),
-                              ('dropout1', nn.Dropout(0.2)),
-#                               ('fc2', nn.Linear(4096, 1000)),
-#                               ('relu2', nn.ReLU()),
-#                               ('dropout2', nn.Dropout(0.2)),
-                              ('fc2', nn.Linear(4096, 102)),    
-                              ('output', nn.LogSoftmax(dim=1))
-                              ]))
+    elif re.search('inception', arch):   
+        model = models.inception_v3(pretrained=True)   
+        classifier = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(2048, hidden_units)),
+            ('relu1', nn.ReLU()),
+            ('dropout1', nn.Dropout(0.2)),
+            ('logits', nn.Linear(hidden_units, 102))
+        ]))         
+        model.classifier = classifier           
 
-    model.classifier = classifier           
+        #define Criterion and Optimizer Functions
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(model.classifier.parameters(), lr)                                   
+     
+    for param in model.parameters():
+        param.requires_grad = False           
 
-    #define Criterion and Optimizer Functions
-    criterion = nn.NLLLoss()
-    optimizer = optim.Adam(model.classifier.parameters(), lr)  
+
+
+
     
 #     epochs = 5
     print_every = 40
@@ -160,14 +194,14 @@ def train(data_dir, arch="vgg16", lr=0.01, hidden_units=512, epochs=3, device='c
 
                 # Turn off gradients for validation, will speed up inference
                 with torch.no_grad():
-                    test_loss, accuracy = validation(model, testloader, criterion, device)
+                    test_loss, accuracy = validation(model, validloader, criterion, device)
     #                 test_loss = test_loss.to(device)
     #                 accuracy = accuracy.to(device)
 
                 print("Epoch: {}/{}.. ".format(e+1, epochs),
                       "Training Loss: {:.3f}.. ".format(running_loss/print_every),
-                      "Test Loss: {:.3f}.. ".format(test_loss/len(testloader)),
-                      "Test Accuracy: {:.3f}".format(accuracy/len(testloader)))
+                      "Test Loss: {:.3f}.. ".format(test_loss/len(validloader)),
+                      "Test Accuracy: {:.3f}".format(accuracy/len(validloader)))
 
                 running_loss = 0
 

@@ -67,8 +67,8 @@ validloader = torch.utils.data.DataLoader(valid_data, batch_size=32)
 def load_checkpoint(filename):
     checkpoint = torch.load(filename)
     learning_rate = checkpoint['learning_rate']
-    model = models.vgg16(pretrained=True)
-    
+#     model = models.vgg16(pretrained=True)
+    model = checkpoint['model']
 #     optimizer = optim.Adam(model.classifier.parameters(), 0.001)
     
     model.classifier = checkpoint['classifier']
